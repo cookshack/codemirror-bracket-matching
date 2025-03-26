@@ -6,7 +6,7 @@ import {Tree, SyntaxNode, SyntaxNodeRef, NodeType, NodeProp} from "@lezer/common
 export interface Config {
   /// Whether the bracket matching should look at the character after
   /// the cursor when matching (if the one before isn't a bracket).
-  /// Defaults to true.
+  /// Defaults to true (but see `directional`).
   afterCursor?: boolean
   /// The bracket characters to match, as a string of pairs. Defaults
   /// to `"()[]{}"`. Note that these are only used as fallback when
@@ -14,6 +14,12 @@ export interface Config {
   /// information](https://lezer.codemirror.net/docs/ref/#common.NodeProp^closedBy)
   /// in the syntax tree.
   brackets?: string
+  /// Whether the matching picks which bracket to match based on whether the
+  /// bracket is before or after the cursor. Opening brackets only match when
+  /// they are after. Closing bracket only match when they are before.
+  /// Overrides `afterCursor`.
+  /// Defaults to true.
+  directional?: boolean
   /// The maximum distance to scan for matching brackets. This is only
   /// relevant for brackets not encoded in the syntax tree. Defaults
   /// to 10 000.
@@ -37,6 +43,7 @@ const bracketMatchingConfig = Facet.define<Config, Required<Config>>({
     return combineConfig(configs, {
       afterCursor: true,
       brackets: DefaultBrackets,
+      directional: true,
       maxScanDistance: DefaultScanDist,
       renderMatch: defaultRenderMatch
     })
@@ -61,14 +68,27 @@ const bracketMatchingState = StateField.define<DecorationSet>({
     let decorations: Range<Decoration>[] = []
     let config = tr.state.facet(bracketMatchingConfig)
     for (let range of tr.state.selection.ranges) {
+      let match
       if (!range.empty) continue
-      let match = matchBrackets(tr.state, range.head, -1, config)
-        || (range.head > 0 && matchBrackets(tr.state, range.head - 1, 1, config))
-        || (config.afterCursor &&
-            (matchBrackets(tr.state, range.head, 1, config) ||
-             (range.head < tr.state.doc.length && matchBrackets(tr.state, range.head + 1, -1, config))))
-      if (match)
-        decorations = decorations.concat(config.renderMatch(match, tr.state))
+      if (config.directional) {
+        // Only try backward for char at cursor, only try forward for char after cursor.
+        // This limits the highlight to closing brackets before the cursor and opening
+        // brackets after.
+        match = matchBrackets(tr.state, range.head, -1, config)
+        if (match)
+          decorations = decorations.concat(config.renderMatch(match, tr.state));
+        match = matchBrackets(tr.state, range.head, 1, config)
+        if (match)
+          decorations = decorations.concat(config.renderMatch(match, tr.state));
+      } else {
+        match = matchBrackets(tr.state, range.head, -1, config)
+          || (range.head > 0 && matchBrackets(tr.state, range.head - 1, 1, config))
+          || (config.afterCursor &&
+              (matchBrackets(tr.state, range.head, 1, config) ||
+               (range.head < tr.state.doc.length && matchBrackets(tr.state, range.head + 1, -1, config))))
+        if (match)
+          decorations = decorations.concat(config.renderMatch(match, tr.state))
+      }
     }
     return Decoration.set(decorations, true)
   },
