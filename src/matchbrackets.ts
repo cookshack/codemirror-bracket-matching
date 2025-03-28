@@ -250,7 +250,7 @@ function matchPlainEnclosingBrackets(state: EditorState, pos: number, tree: Tree
     let iter = state.doc.iterRange(pos, 0)
     let depth = 0
     bracket = -1
-    for (let distance = 0; !(iter.next()).done && distance <= maxScanDistance;) {
+    for1: for (let distance = 0; !(iter.next()).done && distance <= maxScanDistance;) {
       let text = iter.value
       distance += text.length
       let basePos = pos - distance
@@ -262,7 +262,7 @@ function matchPlainEnclosingBrackets(state: EditorState, pos: number, tree: Tree
         } else if (depth == 0) {
           startToken = {from: basePos + pos, to: basePos + pos + 1}
           bracket = found
-          break
+          break for1
         } else {
           depth--
         }
