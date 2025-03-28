@@ -6,7 +6,7 @@ import {Tree, SyntaxNode, SyntaxNodeRef, NodeType, NodeProp} from "@lezer/common
 export interface Config {
   /// Whether the bracket matching should look at the character after
   /// the cursor when matching (if the one before isn't a bracket).
-  /// Defaults to true (but see `directional`).
+  /// Defaults to true (but see `directional` and `enclosing`).
   afterCursor?: boolean
   /// The bracket characters to match, as a string of pairs. Defaults
   /// to `"()[]{}"`. Note that these are only used as fallback when
@@ -20,6 +20,10 @@ export interface Config {
   /// Overrides `afterCursor`.
   /// Defaults to true.
   directional?: boolean
+  /// If true then the innermost pair of brackets are highlighted.
+  /// Overrides `afterCursor` and `directional`.
+  /// Defaults to false.
+  enclosing?: boolean
   /// The maximum distance to scan for matching brackets. This is only
   /// relevant for brackets not encoded in the syntax tree. Defaults
   /// to 10 000.
@@ -44,6 +48,7 @@ const bracketMatchingConfig = Facet.define<Config, Required<Config>>({
       afterCursor: true,
       brackets: DefaultBrackets,
       directional: true,
+      enclosing: false,
       maxScanDistance: DefaultScanDist,
       renderMatch: defaultRenderMatch
     })
@@ -70,7 +75,11 @@ const bracketMatchingState = StateField.define<DecorationSet>({
     for (let range of tr.state.selection.ranges) {
       let match
       if (!range.empty) continue
-      if (config.directional) {
+      if (config.enclosing) {
+        match = matchEnclosingBrackets(tr.state, range.head, config)
+        if (match)
+          decorations = decorations.concat(config.renderMatch(match, tr.state));
+      } else if (config.directional) {
         // Only try backward for char at cursor, only try forward for char after cursor.
         // This limits the highlight to closing brackets before the cursor and opening
         // brackets after.
@@ -162,6 +171,21 @@ export function matchBrackets(state: EditorState, pos: number, dir: -1 | 1, conf
   return matchPlainBrackets(state, pos, dir, tree, node.type, maxScanDistance, brackets)
 }
 
+export function matchEnclosingBrackets(state: EditorState, pos: number, config: Config = {}): MatchResult | null {
+  let maxScanDistance = config.maxScanDistance || DefaultScanDist, brackets = config.brackets || DefaultBrackets
+  let dir: number = 1
+  let tree = syntaxTree(state), node = tree.resolveInner(pos, dir)
+  for (let cur: SyntaxNode | null = node; cur; cur = cur.parent) {
+    let matches = matchingNodes(cur.type, dir, brackets)
+    if (matches && cur.from < cur.to) {
+      let handle = findHandle(cur)
+      if (handle && (dir > 0 ? pos >= handle.from && pos < handle.to : pos > handle.from && pos <= handle.to))
+        return null //matchMarkedEnclosingBrackets(state, pos, dir, cur, handle, matches, brackets)
+    }
+  }
+  return matchPlainEnclosingBrackets(state, pos, tree, node.type, maxScanDistance, brackets)
+}
+
 function matchMarkedBrackets(_state: EditorState, _pos: number, dir: -1 | 1, token: SyntaxNode,
                              handle: SyntaxNodeRef, matching: readonly string[], brackets: string) {
   let parent = token.parent, firstToken = {from: handle.from, to: handle.to}
@@ -215,4 +239,59 @@ function matchPlainBrackets(state: EditorState, pos: number, dir: number, tree: 
     if (dir > 0) distance += text.length
   }
   return iter.done ? {start: startToken, matched: false} : null
+}
+
+function matchPlainEnclosingBrackets(state: EditorState, pos: number, tree: Tree,
+                                     tokenType: NodeType, maxScanDistance: number, brackets: string) {
+  let bracket, startToken
+
+  // Search backward for an opening bracket.
+  {
+    let iter = state.doc.iterRange(pos, 0)
+    let depth = 0
+    bracket = -1
+    for (let distance = 0; !(iter.next()).done && distance <= maxScanDistance;) {
+      let text = iter.value
+      distance += text.length
+      let basePos = pos - distance
+      for (let pos = text.length - 1; pos >= 0; pos--) {
+        let found = brackets.indexOf(text[pos])
+        if (found < 0 || tree.resolveInner(basePos + pos, 1).type != tokenType) continue
+        if (found % 2) {
+          depth++
+        } else if (depth == 0) {
+          startToken = {from: basePos + pos, to: basePos + pos + 1}
+          bracket = found
+          break
+        } else {
+          depth--
+        }
+      }
+    }
+  }
+  if (bracket < 0)
+    return null
+
+  // Search forward for a closing bracket.
+  {
+    let iter = state.doc.iterRange(pos, state.doc.length)
+    let depth = 0
+    for (let distance = 0; !(iter.next()).done && distance <= maxScanDistance;) {
+      let text = iter.value
+      let basePos = pos + distance
+      for (let pos = 0; pos < text.length; pos++) {
+        let found = brackets.indexOf(text[pos])
+        if (found < 0 || tree.resolveInner(basePos + pos, 1).type != tokenType) continue
+        if (found % 2 == 0) {
+          depth++
+        } else if (depth == 0) { // Closing
+          return {start: startToken, end: {from: basePos + pos, to: basePos + pos + 1}, matched: (found >> 1) == (bracket >> 1)}
+        } else {
+          depth--
+        }
+      }
+      distance += text.length
+    }
+    return iter.done ? {start: startToken, matched: false} : null
+  }
 }
