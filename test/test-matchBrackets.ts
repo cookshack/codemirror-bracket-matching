@@ -31,8 +31,8 @@ describe("matchBrackets", () => {
   })
 
   it("(ab)·", () => {
-    ist(matchBrackets(state("(ab)·"), 4, 1),
-        null)
+    let match = matchBrackets(state("(ab)"), 4, 1)
+    ist(match.matched, false)
   })
 
   it("(ab)· ←", () => {
