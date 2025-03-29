@@ -189,7 +189,7 @@ export function matchEnclosingBrackets(state: EditorState, pos: number, config: 
       }
     }
   }
-  return matchPlainEnclosingBrackets(state, pos, tree, tree.resolveInner(pos, dir), maxScanDistance, brackets)
+  return matchPlainEnclosingBrackets(state, pos, tree, tree.resolveInner(pos, dir).type, maxScanDistance, brackets)
 }
 
 function matchMarkedBrackets(_state: EditorState, _pos: number, dir: -1 | 1, token: SyntaxNode,
