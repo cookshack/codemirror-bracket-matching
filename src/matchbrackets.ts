@@ -174,16 +174,22 @@ export function matchBrackets(state: EditorState, pos: number, dir: -1 | 1, conf
 export function matchEnclosingBrackets(state: EditorState, pos: number, config: Config = {}): MatchResult | null {
   let maxScanDistance = config.maxScanDistance || DefaultScanDist, brackets = config.brackets || DefaultBrackets
   let dir: number = 1
-  let tree = syntaxTree(state), node = tree.resolveInner(pos, dir)
-  for (let cur: SyntaxNode | null = node; cur; cur = cur.parent) {
-    let matches = matchingNodes(cur.type, dir, brackets)
-    if (matches && cur.from < cur.to) {
-      let handle = findHandle(cur)
-      if (handle && (dir > 0 ? pos >= handle.from && pos < handle.to : pos > handle.from && pos <= handle.to))
-        return null //matchMarkedEnclosingBrackets(state, pos, dir, cur, handle, matches, brackets)
+  let tree = syntaxTree(state)
+  for (let pos2 = pos; pos2 >= 0; pos2--) {
+    let node = tree.resolveInner(pos2, dir)
+    for (let cur: SyntaxNode | null = node; cur; cur = cur.parent) {
+      let matches = matchingNodes(cur.type, dir, brackets)
+      if (matches && cur.from < cur.to) {
+        let handle = findHandle(cur)
+        if (handle && (dir > 0 ? pos2 >= handle.from && pos2 < handle.to : pos2 > handle.from && pos2 <= handle.to)) {
+          let found = matchMarkedEnclosingBrackets(state, pos /* original pos */, dir, cur, handle, matches, brackets)
+          if (found)
+            return found
+        }
+      }
     }
   }
-  return matchPlainEnclosingBrackets(state, pos, tree, node.type, maxScanDistance, brackets)
+  return matchPlainEnclosingBrackets(state, pos, tree, tree.resolveInner(pos, dir), maxScanDistance, brackets)
 }
 
 function matchMarkedBrackets(_state: EditorState, _pos: number, dir: -1 | 1, token: SyntaxNode,
@@ -205,6 +211,37 @@ function matchMarkedBrackets(_state: EditorState, _pos: number, dir: -1 | 1, tok
             end: endHandle && endHandle.from < endHandle.to ? {from: endHandle.from, to: endHandle.to} : undefined,
             matched: false
           }
+        }
+        depth--
+      }
+    }
+  } while (dir < 0 ? cursor.prevSibling() : cursor.nextSibling())
+  return {start: firstToken, matched: false}
+}
+
+function matchMarkedEnclosingBrackets(_state: EditorState, pos: number, dir: -1 | 1, token: SyntaxNode,
+                                      handle: SyntaxNodeRef, matching: readonly string[], brackets: string) {
+  let parent = token.parent, firstToken = {from: handle.from, to: handle.to}
+  let depth = 0, cursor = parent?.cursor()
+  if (cursor && (dir < 0 ? cursor.childBefore(token.from) : cursor.childAfter(token.to))) do {
+    if (dir < 0 ? cursor.to <= token.from : cursor.from >= token.to) {
+      if (depth == 0 && matching.indexOf(cursor.type.name) > -1 && cursor.from < cursor.to) {
+        let endHandle = findHandle(cursor)
+        if (endHandle.from > pos)
+          return {start: firstToken, end: endHandle ? {from: endHandle.from, to: endHandle.to} : undefined, matched: true}
+        return null
+      } else if (matchingNodes(cursor.type, dir, brackets)) {
+        depth++
+      } else if (matchingNodes(cursor.type, -dir as -1 | 1, brackets)) {
+        if (depth == 0) {
+          let endHandle = findHandle(cursor)
+          if (endHandle.from > pos)
+            return {
+              start: firstToken,
+              end: endHandle && endHandle.from < endHandle.to ? {from: endHandle.from, to: endHandle.to} : undefined,
+              matched: false
+            }
+          return null
         }
         depth--
       }
