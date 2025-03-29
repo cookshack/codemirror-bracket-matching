@@ -3,48 +3,40 @@ import {matchBrackets, matchEnclosingBrackets} from "@cookshack/codemirror-brack
 import {EditorState} from "@codemirror/state"
 import {DecorationSet} from "@codemirror/view"
 
+function state(text) {
+  return EditorState.create({ doc: text })
+}
+
 describe("matchBrackets", () => {
   it("(a·b)", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    ist(matchBrackets(state, 2, 1, { brackets: "()[]{}",
-                                      maxScanDistance: 10 }),
+    ist(matchBrackets(state("(ab)"), 2, 1),
         null)
   })
 
   it("(a·b) ←", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    ist(matchBrackets(state, 2, -1, { brackets: "()[]{}",
-                                      maxScanDistance: 10 }),
+    ist(matchBrackets(state("(ab)"), 2, -1),
         null)
   })
 
   it("·(ab)", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    let match = matchBrackets(state, 0, 1, { brackets: "()[]{}",
-                                             maxScanDistance: 10 })
+    let match = matchBrackets(state("(ab)"), 0, 1)
     ist(match.matched, true)
     ist(match.end.from, 3)
     ist(match.end.to, 4)
   })
 
   it("·(ab) ←", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    ist(matchBrackets(state, 0, -1, { brackets: "()[]{}",
-                                      maxScanDistance: 10 }),
+    ist(matchBrackets(state("(ab)"), 0, -1),
         null)
   })
 
   it("(ab)·", () => {
-    let state = EditorState.create({ doc: "(ab)·" })
-    ist(matchBrackets(state, 4, 1, { brackets: "()[]{}",
-                                     maxScanDistance: 10 }),
+    ist(matchBrackets(state("(ab)·"), 4, 1),
         null)
   })
 
   it("(ab)· ←", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    let match = matchBrackets(state, 4, -1, { brackets: "()[]{}",
-                                              maxScanDistance: 10 })
+    let match = matchBrackets(state("(ab)"), 4, -1)
     ist(match.matched, true)
     ist(match.end.from, 0)
     ist(match.end.to, 1)
@@ -53,32 +45,24 @@ describe("matchBrackets", () => {
 
 describe("matchEnclosingBrackets", () => {
   it("(a·b)", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    let match = matchEnclosingBrackets(state, 2, { brackets: "()[]{}",
-                                                   maxScanDistance: 10 })
+    let match = matchEnclosingBrackets(state("(ab)"), 2)
     ist(match.matched, true)
     ist(match.end.from, 3)
     ist(match.end.to, 4)
   })
 
   it("·(ab)", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    ist(matchEnclosingBrackets(state, 0, { brackets: "()[]{}",
-                                           maxScanDistance: 10 }),
+    ist(matchEnclosingBrackets(state("(ab)"), 0),
         null)
   })
 
   it("(ab)·", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    ist(matchEnclosingBrackets(state, 4, { brackets: "()[]{}",
-                                           maxScanDistance: 10 }),
+    ist(matchEnclosingBrackets(state("(ab)"), 4),
         null)
   })
 
   it("(·ab)", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    let match = matchEnclosingBrackets(state, 1, { brackets: "()[]{}",
-                                                   maxScanDistance: 10 })
+    let match = matchEnclosingBrackets(state("(ab)"), 1)
     ist(match.matched, true)
     ist(match.end.from, 3)
     ist(match.end.to, 4)
@@ -86,9 +70,7 @@ describe("matchEnclosingBrackets", () => {
 
 
   it("(ab·)", () => {
-    let state = EditorState.create({ doc: "(ab)" })
-    let match = matchEnclosingBrackets(state, 3, { brackets: "()[]{}",
-                                                   maxScanDistance: 10 })
+    let match = matchEnclosingBrackets(state("(ab)"), 3)
     ist(match.matched, true)
     ist(match.end.from, 3)
     ist(match.end.to, 4)
