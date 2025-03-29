@@ -5,7 +5,8 @@
   "homepage": "https://git.sr.ht/~mattmundell/codemirror-bracket-matching",
   "scripts": {
     "all": "npm run prepare && npm test",
-    "prepare": "rollup -c"
+    "prepare": "cm-buildhelper src/matchbrackets.ts",
+    "test": "cm-runtests"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   "sideEffects": false,
   "license": "MIT",
   "devDependencies": {
+    "@codemirror/buildhelper": "^1.0.2",
     "@cookshack/build": "^0.2.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-typescript": "^12.1.2",
