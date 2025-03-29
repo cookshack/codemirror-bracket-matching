@@ -5,7 +5,7 @@ import {DecorationSet} from "@codemirror/view"
 
 describe("matchBrackets", () => {
   it("(a·b)", () => {
-    let state = EditorState.create({ doc: "(a·b)" })
+    let state = EditorState.create({ doc: "(ab)" })
     ist(matchBrackets(state, 2, -1, { afterCursor: false,
                                       brackets: "()[]{}",
                                       directional: false,
@@ -14,8 +14,8 @@ describe("matchBrackets", () => {
         null)
   })
 
-  it("(a·b) directnl", () => {
-    let state = EditorState.create({ doc: "(a·b)" })
+  it("(a·b) directional", () => {
+    let state = EditorState.create({ doc: "(ab)" })
     ist(matchBrackets(state, 2, -1, { afterCursor: false,
                                       brackets: "()[]{}",
                                       directional: true,
@@ -27,14 +27,14 @@ describe("matchBrackets", () => {
 
 describe("matchEnclosingBrackets", () => {
   it("(a·b) encl", () => {
-    let state = EditorState.create({ doc: "(a·b)" })
+    let state = EditorState.create({ doc: "(ab)" })
     let match = matchEnclosingBrackets(state, 2, -1, { afterCursor: false,
                                                        brackets: "()[]{}",
                                                        directional: false,
                                                        enclosing: true,
                                                        maxScanDistance: 10 })
     ist(match.matched, true)
-    ist(match.end.from, 4)
-    ist(match.end.to, 5)
+    ist(match.end.from, 3)
+    ist(match.end.to, 4)
   })
 })
