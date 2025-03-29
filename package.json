@@ -1,6 +1,6 @@
 {
   "name": "@cookshack/codemirror-bracket-matching",
-  "version": "6.10.4-0",
+  "version": "0.2.0",
   "description": "CodeMirror 6 extension for bracket matching",
   "homepage": "https://git.sr.ht/~mattmundell/codemirror-bracket-matching",
   "scripts": {
