@@ -293,7 +293,11 @@ function matchPlainEnclosingBrackets(state: EditorState, pos: number, tree: Tree
       let basePos = pos - distance
       for (let pos = text.length - 1; pos >= 0; pos--) {
         let found = brackets.indexOf(text[pos])
-        if (found < 0 || tree.resolveInner(basePos + pos, 1).type != tokenType) continue
+        if (found < 0)
+          continue
+        let node = tree.resolveInner(basePos + pos, 1)
+        if (node.type != tokenType)
+          continue
         if (found % 2) {
           depth++
         } else if (depth == 0) {
