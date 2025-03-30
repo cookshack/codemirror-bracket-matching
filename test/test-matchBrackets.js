@@ -1,8 +1,9 @@
 import ist from "ist";
 import { matchBrackets, matchEnclosingBrackets } from "@cookshack/codemirror-bracket-matching";
 import { EditorState } from "@codemirror/state";
-function state(text) {
-    return EditorState.create({ doc: text });
+import { language as zig } from "@cookshack/codemirror-lang-zig";
+function state(text, lang) {
+    return EditorState.create({ doc: text, extensions: lang == "zig" ? [zig()] : [] });
 }
 describe("matchBrackets", () => {
     it("(·)", () => {
@@ -82,5 +83,27 @@ describe("matchEnclosingBrackets", () => {
         ist(match.matched, true);
         ist(match.end.from, 3);
         ist(match.end.to, 4);
+    });
+});
+describe("matchBrackets with syntax nodes", () => {
+    it("((1 * 2) ·+ 9);", () => {
+        ist(matchBrackets(state("((1 * 2) ·+ 9);", "zig"), 9, 1), null);
+    });
+    it("((1 * 2) ·+ 9); ←", () => {
+        ist(matchBrackets(state("((1 * 2) ·+ 9);", "zig"), 9, -1), null);
+    });
+});
+describe("matchEnclosingBrackets with syntax nodes", () => {
+    it("((1 * 2) ·+ 9);", () => {
+        let match = matchEnclosingBrackets(state("((1 * 2) ·+ 9);", "zig"), 9, 1);
+        ist(match.matched, true);
+        ist(match.end.from, "((1 * 2) ·+ 9".length);
+        ist(match.end.to, "((1 * 2) ·+ 9)".length);
+    });
+    it("((1 * 2) ·+ 9); ←", () => {
+        let match = matchEnclosingBrackets(state("((1 * 2) ·+ 9);", "zig"), 9, -1);
+        ist(match.matched, true);
+        ist(match.end.from, "((1 * 2) ·+ 9".length);
+        ist(match.end.to, "((1 * 2) ·+ 9)".length);
     });
 });
