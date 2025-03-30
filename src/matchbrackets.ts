@@ -227,7 +227,7 @@ function matchMarkedEnclosingBrackets(_state: EditorState, pos: number, dir: -1 
     if (dir < 0 ? cursor.to <= token.from : cursor.from >= token.to) {
       if (depth == 0 && matching.indexOf(cursor.type.name) > -1 && cursor.from < cursor.to) {
         let endHandle = findHandle(cursor)
-        if (endHandle.from > pos)
+        if (endHandle.from >= pos)
           return {start: firstToken, end: endHandle ? {from: endHandle.from, to: endHandle.to} : undefined, matched: true}
         return null
       } else if (matchingNodes(cursor.type, dir, brackets)) {
@@ -235,7 +235,7 @@ function matchMarkedEnclosingBrackets(_state: EditorState, pos: number, dir: -1 
       } else if (matchingNodes(cursor.type, -dir as -1 | 1, brackets)) {
         if (depth == 0) {
           let endHandle = findHandle(cursor)
-          if (endHandle.from > pos)
+          if (endHandle.from >= pos)
             return {
               start: firstToken,
               end: endHandle && endHandle.from < endHandle.to ? {from: endHandle.from, to: endHandle.to} : undefined,

@@ -163,4 +163,18 @@ describe("matchEnclosingBrackets with syntax nodes", () => {
     ist(matchEnclosingBrackets(state(text, "zig"), start, { maxScanDistance: 2 }),
         null)
   })
+
+  it("(1 * 2·)", () => {
+    let text = "(1 * 2)"
+    let start = text.length - 1
+    let match = matchEnclosingBrackets(state(text, "zig"), start)
+    ist(match.matched, true)
+  })
+
+  it("if (a=b(·))", () => {
+    let text = "if (a=b())"
+    let start = text.length - 2
+    let match = matchEnclosingBrackets(state(text, "zig"), start)
+    ist(match.matched, true)
+  })
 })
