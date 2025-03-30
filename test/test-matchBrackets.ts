@@ -64,6 +64,15 @@ describe("matchBrackets", () => {
     ist(match.end.from, 0)
     ist(match.end.to, 1)
   })
+
+  it("(12\\n4)· maxScanDistance", () => {
+    let text = "(12\n4)"
+    let start = text.length
+    let match = matchBrackets(state(text), start, -1)
+    ist(match.matched, true)
+    ist(matchBrackets(state(text), start, -1, { maxScanDistance: 2 }),
+        null)
+  })
 })
 
 describe("matchEnclosingBrackets", () => {
@@ -115,6 +124,15 @@ describe("matchEnclosingBrackets", () => {
     ist(match.end.from, 3)
     ist(match.end.to, 4)
   })
+
+  it("(\\n1234·) maxScanDistance", () => {
+    let text = "(\n1234)"
+    let start = text.length - 1
+    let match = matchEnclosingBrackets(state(text), start)
+    ist(match.matched, true)
+    ist(matchEnclosingBrackets(state(text), start, { maxScanDistance: 2 }),
+        null)
+  })
 })
 
 describe("matchBrackets with syntax nodes", () => {
@@ -131,16 +149,18 @@ describe("matchBrackets with syntax nodes", () => {
 
 describe("matchEnclosingBrackets with syntax nodes", () => {
   it("((1 * 2) ·+ 9);", () => {
-    let match = matchEnclosingBrackets(state("((1 * 2) ·+ 9);", "zig"), 9, 1);
+    let match = matchEnclosingBrackets(state("((1 * 2) ·+ 9);", "zig"), 9);
     ist(match.matched, true)
     ist(match.end.from, "((1 * 2) ·+ 9".length)
     ist(match.end.to, "((1 * 2) ·+ 9)".length)
   })
 
-  it("((1 * 2) ·+ 9); ←", () => {
-    let match = matchEnclosingBrackets(state("((1 * 2) ·+ 9);", "zig"), 9, -1);
+  it("(1 * ·2) maxScanDistance", () => {
+    let text = "(1 * 2)"
+    let start = text.length - 2
+    let match = matchEnclosingBrackets(state(text, "zig"), start)
     ist(match.matched, true)
-    ist(match.end.from, "((1 * 2) ·+ 9".length)
-    ist(match.end.to, "((1 * 2) ·+ 9)".length)
+    ist(matchEnclosingBrackets(state(text, "zig"), start, { maxScanDistance: 2 }),
+        null)
   })
 })

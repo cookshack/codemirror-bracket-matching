@@ -175,7 +175,7 @@ export function matchEnclosingBrackets(state: EditorState, pos: number, config: 
   let maxScanDistance = config.maxScanDistance || DefaultScanDist, brackets = config.brackets || DefaultBrackets
   let dir: 1 = 1
   let tree = syntaxTree(state)
-  for (let pos2 = pos; pos2 >= 0; pos2--) {
+  for (let pos2 = pos; pos2 >= 0 && ((pos - pos2) <= maxScanDistance); pos2--) {
     let node = tree.resolveInner(pos2, dir)
     for (let cur: SyntaxNode | null = node; cur; cur = cur.parent) {
       let matches = matchingNodes(cur.type, dir, brackets)
